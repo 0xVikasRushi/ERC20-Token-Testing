@@ -23,4 +23,24 @@ contract("ERC20 Testing", (accounts) => {
     );
     assert(contractBalance.toNumber() === balanceArray.toNumber());
   });
+
+  it("Checking for Contract Paused Status", async () => {
+    const status = await instance.isPaused();
+    assert(status === true);
+  });
+
+  //   it("Transferring Token to another wallet Checking", async () => {
+  //     // intially sending allowance to accounts 2 from accounts 0 and sending 100 tokens
+  //     const account = await instance.transferFromIssuer(accounts[2], 100);
+  //     console.log(account);
+  //   });
+
+  it("Checking Intial Issuers Accounts", async () => {
+    const issuerAddress = await instance.issuer();
+    assert(issuerAddress === accounts[0]);
+  });
+  it("Checking Intial for registrarAddress", async () => {
+    const registrarAddress = await instance.registrar();
+    assert(registrarAddress === accounts[1]);
+  });
 });
