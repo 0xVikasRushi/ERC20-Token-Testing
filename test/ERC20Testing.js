@@ -15,14 +15,16 @@ contract("ERC20 Testing", (accounts) => {
     assert(registrarAddress === accounts[1]);
   });
 
+  let contractBalance;
   it("Checking Balance and Contract Balance", async () => {
-    const contractBalance = await instance.checkBalance();
+    contractBalance = await instance.checkBalance();
 
     const balanceArray = await instance.checkBalanceforIsuuerorRegisterar(
       accounts[0] // issuer account
     );
     assert(contractBalance.toNumber() === balanceArray.toNumber());
   });
+
   let statusIspaused;
   it("Checking for Contract Paused Status", async () => {
     statusIspaused = await instance.isPaused();
@@ -48,21 +50,22 @@ contract("ERC20 Testing", (accounts) => {
     statusIspaused = await instance.isPaused();
     assert(statusIspaused === false);
   });
-  it("Transferring Token to another wallet Checking", async () => {});
 
-  // it("Checking Intial Issuers Accounts", async () => {
-  //   const issuerAddress = await instance.issuer();
-  //   assert(issuerAddress === accounts[0]);
-  // });
-  // it("Checking Intial for registrarAddress", async () => {
-  //   const registrarAddress = await instance.registrar();
-  //   assert(registrarAddress === accounts[1]);
-  // });
+  const amount = 1000;
+  it("Check Transferring Token from Issuer ", async () => {
+    const transferringToken = await instance.transferFromIssuer(
+      accounts[2],
+      amount
+    );
+    assert(transferringToken.receipt.status === true);
+  });
+
+  it("Checking Balance of Issuer ", async () => {
+    const IssuerSupply = await instance.checkBalanceforIsuuerorRegisterar(
+      accounts[0]
+    );
+    assert(IssuerSupply.toNumber() + amount == contractBalance.toNumber());
+  });
 });
 
-// add to whitelist false => true
-// ispaused == > false intial and change it to unPaused public trnxs
-// isWhitelist address intial should be false
-// transferfrom issuer value
-// balance should be equal to totalamount- trnx amount
-// its true
+
