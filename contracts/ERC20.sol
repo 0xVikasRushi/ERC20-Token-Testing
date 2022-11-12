@@ -171,13 +171,18 @@ function isPaused() public view returns(bool){
 
 
 function newIssuer(address payable _newIssuer) public onlyIssuerOrRegistrar {
+  require(_newIssuer != address(0),"Issuer can't be Null address");
+  require(_newIssuer!=issuer,"New issuer address and issuer should be same");
   removeFromWhitelist(issuer);
   issuer = _newIssuer;
   emit IssuerTransferred(issuer, _newIssuer);
   addToWhitelist(_newIssuer);
+
 }
 
 function newRegistrar(address payable _newRegistrar) public onlyIssuerOrRegistrar  {
+  require(_newRegistrar!=address(0),"Address should be valid");
+  require(_newRegistrar!=registrar,"Should be new Registrar");
   removeFromWhitelist(registrar);
   emit RegistrarTransferred(registrar, _newRegistrar);
   registrar = _newRegistrar;
@@ -186,8 +191,8 @@ function newRegistrar(address payable _newRegistrar) public onlyIssuerOrRegistra
 
 
 
-function customerAllowance(address reciever) onlyIssuerOrRegistrar public view returns (uint256) {    //returns the allowance limit of customer wallet 
-
+function customerAllowance(address reciever) public view returns (uint256) {    //returns the allowance limit of customer wallet 
+    require(reciever!=address(0),"Address should be valid");
     require(isWhitelisted(msg.sender), "Holder needs to be whitelisted by registrar or issuer");
     require(isWhitelisted(reciever), "Reciever needs to be whitelisted by registrar or issuer");
     return _allowed[msg.sender][reciever];
@@ -196,6 +201,7 @@ function customerAllowance(address reciever) onlyIssuerOrRegistrar public view r
   function increaseAllowance( address sender, address reciever,uint256 addedValue) public onlyIssuerOrRegistrar returns (bool){ 
     require(sender != address(0),"sender:  incorrect input");
     require(reciever != address(0),"reciever:  incorrect input");
+    require(addedValue>0,"addedValue : incorrect input");
     _allowed[sender][reciever] = (_allowed[sender][reciever].add(addedValue));
     emit Approval(sender, reciever, _allowed[sender][reciever]);
     return true;
@@ -204,6 +210,7 @@ function customerAllowance(address reciever) onlyIssuerOrRegistrar public view r
   function decreaseAllowance(address sender, address reciever,uint256 subtractedValue) public onlyIssuerOrRegistrar returns (bool){ 
     require(sender != address(0),"sender:  incorrect input");
     require(reciever != address(0),"sender:  incorrect input");
+     require(subtractedValue>0," subtractedValue : incorrect input");
     _allowed[sender][reciever] = (
       _allowed[sender][reciever].sub(subtractedValue));
     emit Approval(sender, reciever, _allowed[sender][reciever]);
@@ -211,12 +218,14 @@ function customerAllowance(address reciever) onlyIssuerOrRegistrar public view r
   }
 
 function allowanceOf(address from, address to) onlyIssuerOrRegistrar public view returns (uint256) {    //returns the allowance limit for every wallet
-
+    require(from!=address(0),"from : address should be valid");
+    require(to!=address(0),"to : address should be valid");
     return _allowed[from][to];
   }
 
 
 function transferTokenAsIssuer(address from, address to, uint256 value) public onlyIssuerOrRegistrar returns (bool) {    
+    require(value>0,"Value : incorrect value");
     require(value <= _balances[from]);
     require(value <= _allowed[from][to]);                   
     require(to != address(0));
@@ -235,9 +244,10 @@ function transferTokenAsIssuer(address from, address to, uint256 value) public o
 
   
   function transferForCustomer( address to, uint256 value) public returns (bool) {    //Customer function,for every Role usable, should be allowed from registrar
+    require(to != address(0),"to: address should be valid ");
+    require(value>0,"value : should be valid");
     require(value <= _balances[msg.sender]);
     require(value <= _allowed[msg.sender][to]);                   
-    require(to != address(0));
     require(!paused, "public transfer is paused");
     require(isWhitelisted(msg.sender), "Sender needs to be whitelisted by registrar or issuer");
     require(isWhitelisted(to), "Reciever needs to be whitelisted by registrar or issuer");
@@ -252,6 +262,7 @@ function transferTokenAsIssuer(address from, address to, uint256 value) public o
 
 
   function burn(uint256 amount) public onlyIssuerOrRegistrar returns (bool) {
+    require(amount > 0,"amount : should be valid");
     require(amount <= _balances[issuer], "not enough balance in issuer wallet to burn");  
     totalSupply -= amount;
     _balances[issuer]=_balances[issuer].sub(amount); // Verbrannten Token werden vom Konto des Issuers verbrannt
@@ -260,15 +271,17 @@ function transferTokenAsIssuer(address from, address to, uint256 value) public o
 }
 
 function mint(uint256 _token) public onlyIssuerOrRegistrar returns (bool) { //creates new Token
+  require(_token>0,"token: should valid");
   totalSupply += _token;
   _balances[issuer] += _token;
   return true;
 }
 
   
-  function transferFromIssuer(address _to, uint256 _value) public onlyIssuerOrRegistrar returns (bool success) //no allowance Check needed, because  onlyIssuer/Registrar
+  function transferFromIssuer(address _to, uint256 _value) public onlyIssuer returns (bool success) //no allowance Check needed, because  onlyIssuer/Registrar
 {
     require(_to != address(0));
+    require(_value>0,"_value : should be valid");
     require(!paused, "public transfer is paused");
     require(isWhitelisted(_to), "Reciever needs to be whitelisted by registrar or issuer");
     require(_value <= totalSupply, "overflow protection");
@@ -276,25 +289,27 @@ function mint(uint256 _token) public onlyIssuerOrRegistrar returns (bool) { //cr
     _balances[_to] += _value;
     _balances[issuer] -= _value;
     emit Transfer(issuer, _to, _value);
-
     
     return true;
 }
 
 
 function addToWhitelist(address verifiedAddress) public onlyIssuerOrRegistrar returns (bool success) {
+  require(verifiedAddress!=address(0),"verifedAddress should be valid");
   whitelist[verifiedAddress] = true;
   return true;
 }
 mapping (address => bool) public whitelist ;
 
 function removeFromWhitelist(address _customer) public onlyIssuerOrRegistrar returns (bool success) {
+    require(_customer!=address(0),"_customer : address should be valid");
     require(whitelist[_customer] == true, "Address is not in your whitelist");
   whitelist[_customer] = false;
   return true;
 }
 
 function isWhitelisted(address _address) public view returns (bool) {
+  require(_address!=address(0),"_address : address should be valid");
   return whitelist[_address];
 }
 
