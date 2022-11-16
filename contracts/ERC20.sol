@@ -142,7 +142,7 @@ modifier onlyRegistrar {
   _;
 }
 function checkBalanceforIsuuerorRegisterar(address _address) onlyIssuerOrRegistrar public view returns(uint256){
-
+    require(_address!=address(0),"Null Address");
     return _balances[_address];
     }
 
@@ -236,7 +236,7 @@ function transferTokenAsIssuer(address from, address to, uint256 value) public o
     _balances[to] = _balances[to].add(value);
 
     require( _allowed[from][to] > 0 ,"allowance is not defined");
-    // _allowed[from][to] = _allowed[from][to].sub(value);   
+    _allowed[from][to] = _allowed[from][to].sub(value);   
     emit Transfer(from, to, value);
     return true;
   }
