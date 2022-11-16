@@ -1,6 +1,6 @@
 const ERC20 = artifacts.require("ERC20");
 
-contract("ERC20 Testing", (accounts) => {
+contract("ERC20 Testing Part -1 ", (accounts) => {
   let instance = null;
   before(async () => {
     instance = await ERC20.deployed();
@@ -106,9 +106,121 @@ contract("ERC20 Testing", (accounts) => {
     );
   });
 
+  // ? Whitelisting account then added allowance and decrease allowance and check with
+  //  ? _allowed array values the transfer to customer and transfer as token
+
   it("Checking Removing Accounts from WhiteList", async () => {
-    const statusForRemoval = await instance.removeFromWhitelist(accounts[2]);
-    const isWhitelisted = await instance.isWhitelisted(accounts[2]);
+    await instance.addToWhitelist(accounts[3]);
+    const statusForRemoval = await instance.removeFromWhitelist(accounts[3]);
+    const isWhitelisted = await instance.isWhitelisted(accounts[3]);
     assert(!isWhitelisted === statusForRemoval.receipt.status);
+  });
+});
+
+contract("ERC20 Testing PART - 2 ", (accounts) => {
+  let instance = null;
+  before(async () => {
+    instance = await ERC20.deployed();
+  });
+
+  // ? Checking intital Allowance should be zero
+
+  it("Checking Intial Allowance", async () => {
+    const allowanceIntital = await instance.allowanceOf(
+      accounts[0],
+      accounts[1]
+    );
+    assert(allowanceIntital.toNumber() === 0);
+  });
+
+  //  ? Here whitelisting account and sending some token checking for allowance updation
+  let extraAllowance = 150;
+  it("Checking Increase Allowance", async () => {
+    const whitelistingStatus = await instance.addToWhitelist(accounts[1]);
+    assert(whitelistingStatus);
+
+    const addingAllowanceStatus = await instance.increaseAllowance(
+      accounts[0],
+      accounts[1],
+      extraAllowance
+    );
+    assert(addingAllowanceStatus);
+
+    const newAllowance = await instance.allowanceOf(accounts[0], accounts[1]);
+    assert(newAllowance.toNumber() === extraAllowance);
+  });
+
+  let decreaseAllowanceAmount = 50;
+  it("Checking Decrease Allowance", async () => {
+    const status = await instance.decreaseAllowance(
+      accounts[0],
+      accounts[1],
+      decreaseAllowanceAmount
+    );
+    assert(status);
+    const Currentallowance = await instance.allowanceOf(
+      accounts[0],
+      accounts[1]
+    );
+    assert(Currentallowance.toNumber() === 100);
+  });
+
+  let customerAllowance;
+  it("Checking customerAllowance", async () => {
+    customerAllowance = await instance.customerAllowance(accounts[1]);
+    assert(customerAllowance.toNumber() === 100);
+  });
+
+  const tokens = 10;
+  it("Checking transferForCustomer", async () => {
+    await instance.unpauseContract();
+    // * Tranferring 10 token to accounts[1] address
+    const transfer = await instance.transferForCustomer(accounts[1], tokens);
+    // ? checking for status of payment
+    assert(transfer.receipt.status);
+
+    // ? then checking for customerAllowance
+    const currentAllowance = await instance.customerAllowance(accounts[1]);
+    assert(currentAllowance.toNumber() + tokens === 100);
+  });
+
+  // * here transferring 100 tokens to accounts 2
+  const tokensfrom = 100;
+  it("Checking transferTokenAsIssuer", async () => {
+    // ? whitelisting accounts
+    const statusforWhiteListing = await instance.addToWhitelist(accounts[2]);
+    assert(statusforWhiteListing);
+
+    // ? contract is already paused
+    const isPaused = await instance.isPaused();
+    assert(!isPaused);
+
+    // ? adding intital allowance to accounts 2 from issuer address
+    const statusAllowance = await instance.increaseAllowance(
+      accounts[0],
+      accounts[2],
+      tokensfrom
+    );
+    assert(statusAllowance.receipt.status);
+
+    const statusTransfer = await instance.transferTokenAsIssuer(
+      accounts[0],
+      accounts[2],
+      tokensfrom
+    );
+
+    assert(statusTransfer.receipt.status);
+  });
+
+  // ? later checking balance of issuer and total supply
+
+  it("Balance of issuer checking after transferring of tokens ", async () => {
+    const CurrentBalance = await instance.checkBalanceforIsuuerorRegisterar(
+      accounts[0]
+    );
+    const totalSupply = await instance.totalSupply();
+    assert(
+      CurrentBalance.toNumber() + tokens + tokensfrom === totalSupply.toNumber()
+    );
   });
 });

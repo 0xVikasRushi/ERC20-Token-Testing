@@ -87,8 +87,6 @@ library SafeMath {
     }
 }
 
-
-
 contract ERC20{
 
   using SafeMath for uint256;
@@ -119,8 +117,8 @@ contract ERC20{
    constructor() {
     
 
-      issuer  =0x511ED9d637953C3e5BE2cCA5652f5BC92730c887;
-      registrar = 0x56D185F874c17dEa253Cf0632c054096Db264692;
+      issuer  =msg.sender;
+      registrar = 0x0b21996c1A59aDAc588f50263Ae1907d4915F83A;
       addToWhitelist(issuer);
       addToWhitelist(registrar);
       //transfering all tokens into issuer/owner's wallet
@@ -233,32 +231,33 @@ function transferTokenAsIssuer(address from, address to, uint256 value) public o
     require(isWhitelisted(from), "Holder needs to be whitelisted by registrar or issuer");
     require(isWhitelisted(to), "Reciever needs to be whitelisted by registrar or issuer");
     require(value <= totalSupply, "Value bigger than Totalsupply");
+    
     _balances[from] = _balances[from].sub(value);
     _balances[to] = _balances[to].add(value);
-    _allowed[from][to] = _allowed[from][to].sub(value);          
+
+    require( _allowed[from][to] > 0 ,"allowance is not defined");
+    // _allowed[from][to] = _allowed[from][to].sub(value);   
     emit Transfer(from, to, value);
     return true;
   }
 
-
-
-  
-  function transferForCustomer( address to, uint256 value) public returns (bool) {    //Customer function,for every Role usable, should be allowed from registrar
-    require(to != address(0),"to: address should be valid ");
-    require(value>0,"value : should be valid");
-    require(value <= _balances[msg.sender]);
-    require(value <= _allowed[msg.sender][to]);                   
+    function transferForCustomer (address _to,uint _value) public returns(bool){
+    require(_to != address(0));
+    require(_value>0,"_value : should be valid");
     require(!paused, "public transfer is paused");
     require(isWhitelisted(msg.sender), "Sender needs to be whitelisted by registrar or issuer");
-    require(isWhitelisted(to), "Reciever needs to be whitelisted by registrar or issuer");
-    require(value <= totalSupply, "Value bigger than Totalsupply");
-    _balances[msg.sender] = _balances[msg.sender].sub(value);
-    _balances[to] = _balances[to].add(value);
-    _allowed[msg.sender][to] = _allowed[msg.sender][to].sub(value);          
-    emit Transfer(msg.sender, to, value);
+    require(_value <= _balances[msg.sender],"Balance should be greater");
+    require(isWhitelisted(_to), "Reciever needs to be whitelisted by registrar or issuer");
+    require(_value <= totalSupply, "overflow protection");
+    require(_value <= _balances[issuer], "not enough balance");
+    _balances[_to] += _value;
+    _balances[msg.sender] -= _value;
+    require(_allowed[msg.sender][_to] > 0,"allowance is not defined");
+    _allowed[msg.sender][_to]  -= _value;   
+    emit Transfer(issuer, _to, _value);
     return true;
-  }
-
+    }
+   
 
 
   function burn(uint256 amount) public onlyIssuerOrRegistrar returns (bool) {
@@ -317,8 +316,6 @@ function kill() public onlyIssuer {
   burn(totalSupply);
   selfdestruct(payable(issuer));
 }
-
-
 
 
 }
